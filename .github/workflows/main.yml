@@ -1,0 +1,58 @@
+name: Namoralo Code Market Scanners
+
+on:
+  push:
+    branches: [ main, master ]
+  schedule:
+    # Choose ONE option below (uncomment the preferred schedule):
+    
+    # OPTION A: Run hourly at minute 0 (RECOMMENDED - fits under GitHub free limits)
+    - cron: '0 * * * *'
+
+    # OPTION B: Run 3 times daily (e.g., 08:00, 13:00, 20:00 UTC)
+    # - cron: '0 8,13,20 * * *'
+
+    # OPTION C: Scan every 15 minutes (Best for high-frequency alerts on public repos)
+    # - cron: '*/15 * * * *'
+
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions UI
+
+jobs:
+  run-scanners:
+    runs-on: ubuntu-latest
+
+    # Shared environment variables defined once at the job level
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      TZ: 'Europe/London'
+      TIMEZONE: 'Europe/London'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run Stock Market Scanner
+        env:
+          STOCKS: ${{ secrets.STOCKS }}
+        run: |
+          if [ -f stock_scanner.py ]; then python stock_scanner.py; fi
+
+      - name: Run Crypto Market Scanner
+        env:
+          CRYPTO_PAIRS: ${{ secrets.CRYPTO_PAIRS }}
+          TARGET_CURRENCY: 'USD'
+        run: |
+          if [ -f crypto_scanner.py ]; then python crypto_scanner.py; fi
